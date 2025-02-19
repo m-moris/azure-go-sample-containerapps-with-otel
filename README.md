@@ -66,4 +66,4 @@ You can confirm the following content
 
 ### Links
 
-- Collect and Read OpenTelemetry Data in Azure Container Apps (Preview) | Microsoft Learn ```
+- [Collect and read OpenTelemetry data in Azure Container Apps (preview) | Microsoft Learn](https://learn.microsoft.com/en-us/azure/container-apps/opentelemetry-agents?tabs=bicep%2Carm-example)
