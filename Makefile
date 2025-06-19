@@ -1,12 +1,13 @@
 .DEFAULT_GOAL := help
 
 SHELL=/bin/bash
-TAG		?= 0.0.0 #$(shell git rev-parse --short HEAD)
-KO_DOCKER_REPO	:= $(ACR_NAME).azurecr.io
-IMAGE_NAME	:= $(KO_DOCKER_REPO)/simpleweb
+TAG		?= 1.0.0 #$(shell git rev-parse --short HEAD)
 RG		:= go-containerapps-rg
 SUFFIX		:= 01jmcsp02ds1wm0gg541tndr6y3
 LOCATION 	:= eastasia
+KO_DOCKER_REPO	:= acr$(SUFFIX).azurecr.io
+ACR_NAME	:= acr$(SUFFIX)
+IMAGE_NAME	:= $(KO_DOCKER_REPO)/simpleweb
 
 .PHONY: help build-image acr-login
 
