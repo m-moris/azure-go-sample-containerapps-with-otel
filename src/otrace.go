@@ -8,12 +8,15 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/stdout/stdoutlog"
+	"go.opentelemetry.io/otel/exporters/stdout/stdoutmetric"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/log"
+	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/trace"
 )
 
@@ -42,7 +45,7 @@ func setupOTelSDK(ctx context.Context) (shutdown func(context.Context) error, er
 	otel.SetTextMapPropagator(prop)
 
 	// Set up trace provider.
-	tracerProvider, err := newTracerProvider()
+	tracerProvider, err := newTracerProvider(ctx)
 	if err != nil {
 		handleErr(err)
 		return
@@ -50,17 +53,17 @@ func setupOTelSDK(ctx context.Context) (shutdown func(context.Context) error, er
 	shutdownFuncs = append(shutdownFuncs, tracerProvider.Shutdown)
 	otel.SetTracerProvider(tracerProvider)
 
-	// azure application inghts otel telemetry does not support meter provider
-	/*
-		// Set up meter provider.
-		meterProvider, err := newMeterProvider()
-		if err != nil {
-			handleErr(err)
-			return
-		}
-		shutdownFuncs = append(shutdownFuncs, meterProvider.Shutdown)
-		otel.SetMeterProvider(meterProvider)
-	*/
+	// azure application insights otel telemetry does not support meter provider
+	// TODO: Azure Application InsightsがMeterProviderに対応したら有効化する
+
+	// Set up meter provider.
+	meterProvider, err := newMeterProvider(ctx)
+	if err != nil {
+		handleErr(err)
+		return
+	}
+	shutdownFuncs = append(shutdownFuncs, meterProvider.Shutdown)
+	otel.SetMeterProvider(meterProvider)
 
 	// Set up logger provider.
 	loggerProvider, err := newLoggerProvider(ctx)
@@ -104,7 +107,7 @@ func newLoggerProvider(ctx context.Context) (*log.LoggerProvider, error) {
 	return loggerProvider, nil
 }
 
-func newTracerProvider() (*trace.TracerProvider, error) {
+func newTracerProvider(ctx context.Context) (*trace.TracerProvider, error) {
 
 	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 	var traceExporter trace.SpanExporter
@@ -117,7 +120,7 @@ func newTracerProvider() (*trace.TracerProvider, error) {
 			return nil, err
 		}
 	} else {
-		traceExporter, err = otlptracegrpc.New(context.Background())
+		traceExporter, err = otlptracegrpc.New(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -129,4 +132,32 @@ func newTracerProvider() (*trace.TracerProvider, error) {
 			trace.WithBatchTimeout(time.Second)),
 	)
 	return tracerProvider, nil
+}
+
+func newMeterProvider(ctx context.Context) (*metric.MeterProvider, error) {
+	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	var meterExporter metric.Exporter
+	var err error
+
+	if endpoint == "" {
+		meterExporter, err = stdoutmetric.New(stdoutmetric.WithPrettyPrint())
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		meterExporter, err = otlpmetricgrpc.New(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	meterProvider := metric.NewMeterProvider(
+		metric.WithReader(
+			metric.NewPeriodicReader(
+				meterExporter,
+				metric.WithInterval(10*time.Second), // 10秒ごとにエクスポート
+			),
+		),
+	)
+	return meterProvider, nil
 }

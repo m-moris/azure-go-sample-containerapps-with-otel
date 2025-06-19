@@ -4,6 +4,8 @@ param containerRegistryName string = 'acr${suffix}'
 param containerAppEnvName string = 'cae${suffix}'
 param managedIdentityName string = 'umi${suffix}'
 param applicationInsightsName string = 'ai${suffix}'
+param logAnalyticsWorkspaceName string = 'law${suffix}'
+param aspireDashboardName string = 'aspire-dashboard'
 
 // Create User Assigned Identity
 resource userAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
@@ -20,12 +22,24 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2024-11-01-pr
   }
 }
 
+resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
+  name: logAnalyticsWorkspaceName
+  location: location
+  properties: {
+    retentionInDays: 30
+    sku: {
+      name: 'PerGB2018'
+    }
+  }
+}
+
 resource appInsightsComponents 'Microsoft.Insights/components@2020-02-02' = {
   name: applicationInsightsName
   location: location
   kind: 'web'
   properties: {
     Application_Type: 'web'
+    WorkspaceResourceId: logAnalytics.id
   }
 }
 
@@ -41,6 +55,15 @@ resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2024-10-02-p
       logsConfiguration: { destinations: ['appInsights'] }
       metricsConfiguration: { destinations: ['appInsights'] }
     }
+  }
+}
+
+// Create .NET Aspire Dashboard Component
+resource aspireDashboard 'Microsoft.App/managedEnvironments/dotNetComponents@2024-10-02-preview' = {
+  name: aspireDashboardName
+  parent: containerAppEnvironment
+  properties: {
+    componentType: 'AspireDashboard'
   }
 }
 

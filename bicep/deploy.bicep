@@ -3,10 +3,11 @@ param suffix string = '01jmbwkn7kf7w9xjqbd97hpynv'
 param containerRegistryName string = 'acr${suffix}'
 param containerAppEnvName string = 'cae${suffix}'
 param managedIdentityName string = 'umi${suffix}'
+param imageName string = 'simpleweb:latest'
 
 param containerAppName string = 'simpleweb'
 param containerRegistryUri string = '${containerRegistryName}.azurecr.io'
-param containerImageName string = '${containerRegistryUri}/simpleweb:1.0.0'
+param containerImageName string = '${containerRegistryUri}/${imageName}'
 
 param currentTime string = utcNow()
 var unixTime = dateTimeToEpoch(currentTime)
