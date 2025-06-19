@@ -54,5 +54,6 @@ resource acrPullRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-
       '7f951dda-4ed3-4680-a7ca-43fe172d538d' // AcrPull role ID
     )
     principalId: userAssignedIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
   }
 }
